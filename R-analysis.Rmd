@@ -1,0 +1,331 @@
+---
+title: "Project Draft"
+authors: "Jack Sullivan, Wyatt Broscious, Gavin Carlson, Miguel Marcial"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(knitr)
+library(lubridate)
+# source("../../scripts/viridis.R")
+# source("../../scripts/ggprob.R")
+```
+
+# The Sophomore Slump in Baseball
+
+> Introduction
+
+The Sophomore Slump has long been a topic in the baseball community, and for decades the question of whether it exists has gone unanswered. The Sophomore Slump in baseball is when a player in their second season doesn't live up to the high expectations that they set in their rookie season. The aim of this project is to look at players who excelled in their rookie years and to identify if there is a trend over time that provides evidence that a player who has a great rookie year is likely to have a slump their second season.
+
+*Question of Interest*
+
+We hope to find a trend in the data over time or the lack of a trend over time to answer the question of Does the Sophomore Slump in baseball exist?
+
+*Thesis Statement*
+
+In this research project, we aim to investigate the phenomenon of the Sophomore Slump in baseball by analyzing the performance of players who excelled in their rookie seasons and determining if there is a discernible trend over time. By examining statistical data and performance metrics, our objective is prove the existence of the Sophomore Slump in Major League Baseball.
+
+
+
+
+> Background
+
+*Data Set Description and Collection*
+
+We sourced our data from CSVs that were accumulated using a Python web scraping script that Jack had written in his free time. The sites scraped were approximately 150 baseballreference.com ^[baseballreference.com] player pages for players who had won Rookie of the Year, dating back to 1947 when the award was introduced. Baseball Reference is the go-to database for historic and season by season statistics for MLB data.
+
+*Variables*
+
+The CSVs included most typical stats such as batting average, number of home runs, strikeouts, and plate appearances. More importantly, the CSVs included more modern analytical as well. Applicable stats that we have identified and will look at include HR(Home Runs), OBP(On Base Percentage), SLG(slugging percentage), OPS(on-base percentage plus slugging percentage),and OPS+(On-base Plus Slugging standardized on a scale where 100 is historically average, and every additional point is one percent higher than average).
+
+*Unusual Factors*
+
+Because of the nature of a long baseball season, there is variance in the number of games each player played, effecting the sample size across years. Certain players may have faced injury, and played significatly less games than others.
+
+*Intentions for Report*
+
+In the rest of this report we aim to compare rookie and sophomore performance distributions and show whether or not there is statistical evidence to the claim that star players tend to perform worse their second season when compared to their rookie year.
+
+
+
+Here we took our raw data collected from webscraping, read the csv's into data frames, and isolated only the columns of the key statistics we care about. We did this for rookie and sophomore year data. We then joined the data frames in a data frame named "change" that shows the differences in stats for each player between their rookie and sophomore season. 
+```{r, include=FALSE}
+rookie = read_csv("rookie_stats.csv")
+sophomore = read_csv("sophomore_stats.csv")
+
+
+rookie = rookie %>% 
+  select(name, Year, Age, G, PA, AB, HR, OBP, SLG, OPS, `OPS+`)
+
+sophomore = sophomore %>% 
+  select(name, Year, Age, G, PA, AB, HR, OBP, SLG, OPS, `OPS+`)
+
+
+
+
+change = left_join(rookie, sophomore, "name")
+change = change %>% 
+  mutate(
+    G = G.y - G.x,
+    PA = PA.y - PA.x,
+    AB = AB.y - AB.x,
+    HR = HR.y - HR.x,
+    OBP = OBP.y - OBP.x,
+    SLG = SLG.y - SLG.x,
+    OPS = OPS.y - OPS.x,
+    `OPS+` = `OPS+.y` - `OPS+.x`
+  ) %>% 
+  select(name, G, PA,AB, HR, OBP, SLG, OPS, `OPS+`)
+
+
+rookie_clean = kable(head(rookie, 5), caption = "Rookie Data")
+sophomore_clean = kable(head(sophomore,5), caption = "Sophomore Data")
+change_clean = kable(head(change, 5), caption = "Change Data")
+```
+
+```{r}
+rookie_clean
+sophomore_clean
+change_clean
+```
+
+
+> Analysis
+
+Exploritory Statistics
+
+Here we summarized the means and standard deviations for each category we are measuring across all three data frames. In order the tables are rookie, sophomore, and change data frame summaries.
+
+```{r, echo=FALSE}
+rookie_sum = rookie %>% 
+  summarise(
+    mean_hr = mean(HR),
+    sd_hr = sd(HR),
+    mean_obp = mean(OBP),
+    sd_obp = sd(OBP),
+    mean_slg = mean(SLG),
+    sd_slg = sd(SLG),
+    mean_ops = mean(OPS),
+    sd_ops = sd(OPS),
+    `mean_ops+` = mean(`OPS+`),
+    `sd_ops+` = sd(`OPS+`)
+  )
+rookie_sum_clean = kable(rookie_sum, caption = "Rookie Summary Statistics")
+
+sophomore_sum = sophomore %>% 
+  summarise(
+    mean_hr = mean(HR),
+    sd_hr = sd(HR),
+    mean_obp = mean(OBP),
+    sd_obp = sd(OBP),
+    mean_slg = mean(SLG),
+    sd_slg = sd(SLG),
+    mean_ops = mean(OPS),
+    sd_ops = sd(OPS),
+    `mean_ops+` = mean(`OPS+`),
+    `sd_ops+` = sd(`OPS+`)
+  )
+sophomore_sum_clean = kable(sophomore_sum, caption = "Sophomore Summary Statistics")
+
+change_sum = change %>% 
+  summarise(
+    mean_hr = mean(HR),
+    sd_hr = sd(HR),
+    mean_obp = mean(OBP),
+    sd_obp = sd(OBP),
+    mean_slg = mean(SLG),
+    sd_slg = sd(SLG),
+    mean_ops = mean(OPS),
+    sd_ops = sd(OPS),
+    `mean_ops+` = mean(`OPS+`),
+    `sd_ops+` = sd(`OPS+`)
+  )
+
+change_sum_clean = kable(change_sum, caption = "Change Summary Statistics")
+
+rookie_sum_clean
+sophomore_sum_clean
+change_sum_clean
+```
+
+
+
+Below we have plotted distributions of each key statistic from the data frame. Each graph has a density curve for both rookie and sophomore distributions. For each distribution we have included a vertical line to indicate the mean of the distribution.
+
+Two separate curves can be seen on the graph's canvas, each of which traces the density distribution of the data for the first and second years. The rookie season is represented by the first curve, which depicts the highs and lows of each player's accomplishments. It is a tale of optimistic starts. The peaks and dips of this curve highlight the range of performances among newcomers.
+
+A second curve that shows the density distribution of player data during the sophomore season appears as the story goes on. Now is the chance for the public to see how the players are progressing and what obstacles they might encounter in their sophomore year. Does the curve rise, suggesting a path of progress, or does it fall, suggesting the infamous Sophomore Slump?
+
+
+```{r, echo=FALSE}
+rookie$type <- 'Rookie'
+sophomore$type <- 'Sophomore'
+
+# Combine the datasets
+combined_data <- rbind(rookie, sophomore)
+
+# Plot
+ggplot(combined_data, aes(x = OBP, fill = type)) + 
+    geom_density(alpha = 0.5, color = "black") +
+    scale_fill_manual(values = c("Rookie" = "lightpink", "Sophomore" = "cyan")) +
+    ggtitle("Average on Base Percentage of Players Awarded Rookie of the Year\n(Rookie and Sophomore Year)") + geom_vline(xintercept = rookie_sum$mean_obp, color = "lightpink", linetype = "dashed", size = 1) + geom_vline(xintercept = sophomore_sum$mean_obp, color = "cyan", linetype = "dashed", size = 1)
+
+ggplot(combined_data, aes(x = OPS, fill = type)) + 
+    geom_density(alpha = 0.5, color = "black") +
+    scale_fill_manual(values = c("Rookie" = "red", "Sophomore" = "green", alpha = 0.5)) +
+    ggtitle("Average on Base Percentage Plus Slugging of Players Awarded Rookie of the Year\n(Rookie and Sophomore Year)") + geom_vline(xintercept = rookie_sum$mean_ops, color = "red", linetype = "dashed", size = 1) + geom_vline(xintercept = sophomore_sum$mean_ops, color = "green", linetype = "dashed", size = 1)
+
+ggplot(combined_data, aes(x = `OPS+`, fill = type)) + 
+    geom_density(alpha = 0.5, color = "black") +
+    scale_fill_manual(values = c("Rookie" = "yellow", "Sophomore" = "purple", alpha = 0.5)) +
+    ggtitle("Average on Base Percentage Plus Slugging (Standardized) of Players Awarded Rookie of the Year\n(Rookie and Sophomore Year)") + geom_vline(xintercept = rookie_sum$`mean_ops+`, color = "yellow", linetype = "dashed", size = 1) + geom_vline(xintercept = sophomore_sum$`mean_ops+`, color = "purple", linetype = "dashed", size = 1)
+
+ggplot(combined_data, aes(x = SLG, fill = type)) + 
+    geom_density(alpha = 0.5, color = "black") +
+    scale_fill_manual(values = c("Rookie" = "hotpink", "Sophomore" = "navy")) +
+    ggtitle("Average on Slugging Percentage of Players Awarded Rookie of the Year\n(Rookie and Sophomore Year)") + geom_vline(xintercept = rookie_sum$mean_slg, color = "hotpink", linetype = "dashed", size = 1) + geom_vline(xintercept = sophomore_sum$mean_slg, color = "navy", linetype = "dashed", size = 1)
+
+ggplot(combined_data, aes(x = HR, fill = type)) + 
+    geom_density(alpha = 0.5, color = "black") +
+    scale_fill_manual(values = c("Rookie" = "orange", "Sophomore" = "darkgreen")) +
+    ggtitle("Average on Base Percentage of Players Awarded Rookie of the Year\n(Rookie and Sophomore Year)") + geom_vline(xintercept = rookie_sum$mean_hr, color = "orange", linetype = "dashed", size = 1) + geom_vline(xintercept = sophomore_sum$mean_hr, color = "darkgreen", linetype = "dashed", size = 1)
+```
+
+
+
+These are plots of our key descriptive statistics from the "Change" data frame. The "Change" data frame is the difference between sophomore year and rookie year stats for every player in the data. You can think of it as a distribution of the change in performance between years. A distribution centered at zero would indicate no average change in performance between rookie and sophomore years. On each plot we have included a red line where X = 0 and a black line at the mean of the distribution to demonstrate the skew of the distribution.
+
+```{r, echo=FALSE}
+ggplot(change, aes(x = HR)) + geom_density(fill = "aquamarine", alpha = 0.5) + geom_vline(xintercept = 0, color = "red", linetype = "dashed") + xlab("Change in HR") + 
+  ggtitle("Distribution of Change in HR Hit by Rookies of the Year") + geom_vline(xintercept = change_sum$mean_hr, color = "black", linetype = "dashed")
+
+ggplot(change, aes(x = OBP)) + geom_density(fill = "firebrick", alpha = 0.5) + geom_vline(xintercept = 0, color = "red", linetype = "dashed") +xlab("Change in OBP") + 
+  ggtitle("Distribution of Change in On Base Percentage by Rookies of the Year") +
+  geom_vline(xintercept = change_sum$mean_obp, color = "black", linetype = "dashed")
+
+ggplot(change, aes(x = SLG)) + geom_density(fill = "grey", alpha = 0.5) + geom_vline(xintercept = 0, color = "red", linetype = "dashed")+xlab("Change in SLG") + 
+  ggtitle("Distribution of Change in Slugging Percentage by Rookies of the Year") +
+  geom_vline(xintercept = change_sum$mean_slg, color = "black", linetype = "dashed")
+
+ggplot(change, aes(x = OPS)) + geom_density(fill = "violet", alpha = 0.5) + geom_vline(xintercept = 0, color = "red", linetype = "dashed") +xlab("Change in OPS") + 
+  ggtitle("Distribution of Change in On Base Plus Slugging by Rookies of the Year") +
+  geom_vline(xintercept = change_sum$mean_ops, color = "black", linetype = "dashed")
+
+ggplot(change, aes(x = `OPS+`)) + geom_density(fill = "yellow", alpha = 0.5) + geom_vline(xintercept = 0, color = "red", linetype = "dashed") +xlab("Change in OPS+") + 
+  ggtitle("Distribution of Change in On Base Plus Slugging (relative to historic data) by Rookies of the Year") +
+  geom_vline(xintercept = change_sum$`mean_ops+`, color = "black", linetype = "dashed")
+```
+*Graph Analysis*
+
+It is clear from the density graphs of the change in stats between rookie and sophomore year that for every statistic measured, the mean of the distribution is below zero. This indicates that on average players perform worse across every statistic in their sophomore season. It's hard to tell if the difference in performance is significant from the graphs, so in the following section we will use T tests to find the significance of the difference in rookie and sophomore population means.
+
+
+
+*T Tests*
+
+Here we have conducted one sided paired T tests to evaluate whether the distributions of each statistic between the sample of player's rookie and sophomore season's have equal means, or if the mean value of sophomore data is less than that of rookie data for each baseball statistic. In essence, for each statistic we are conducting a hypothesis test where 
+\[
+\begin{aligned}
+&H_0: \mu_S - \mu_R = 0 \\
+&H_A: \mu_S - \mu_R < 0 \\
+\end{aligned}
+\]
+
+where:
+\begin{align*}
+&\text{H}_0 \text{: Null hypothesis,} \\
+&\text{H}_A \text{: Alternative hypothesis,} \\
+&\mu_R \text{: Population mean of Rookie stat,} \\
+&\mu_S \text{: Population mean of Sophomore stat.}
+\end{align*}
+
+
+We reject the null hypothesis at a significance level of 0.05. This decision is based on whether we reject or fail to reject the null hypothesis, and this determination is made in relation to the chosen significance level. In layman's terms, if the calculated p value of the T test is less than 0.05, there is evidence that the population of Rookie of the Year winners tends to perform worse in that category in their rookie year.
+
+*Assumptions of t test*
+
+The paired one sided t test makes the following assumptions:
+
+- The dependent variable must be continuous (interval/ratio).
+
+  - This is satisfied because none of our stats are discrete.
+  
+- The observations are independent of one another.
+
+  - This is satisfied because the performance of one player should not impact that of another in the data set, since we are only looking at hitters.
+  
+- The dependent variable should be approximately normally distributed.
+
+  - From the graphs above we can see the difference between rookie and sophomore years can roughly be approximated as normal for the key statistics.
+  
+- The dependent variable should not contain any outliers.
+
+  - Because our question focuses on players who won rookie of the year, extreme outliers are not a huge consideration in the data.
+
+
+
+
+Below is a summary table of the t statistics and p values of the T tests for each baseball statistic we tested. 
+```{r, echo=FALSE}
+# SLG T test
+slg = t.test(sophomore$SLG, rookie$SLG, paired = TRUE, alternative = "less")
+# HR T test
+hr = t.test(sophomore$HR, rookie$HR, paired = TRUE, alternative = "less")
+# OBP T test
+obp = t.test(sophomore$OBP, rookie$OBP, paired = TRUE, alternative = "less")
+# OPS T test
+ops = t.test(sophomore$OPS, rookie$OPS, paired = TRUE, alternative = "less")
+# OPS+ T test
+opsp = t.test(sophomore$`OPS+`, rookie$`OPS+`, paired = TRUE, alternative = "less")
+
+
+table = tibble(
+  `SLG t stat` = slg$statistic,
+  `SLG p value` = slg$p.value, 
+  `HR t stat` = hr$statistic,
+  `HR p value` = hr$p.value,
+  `OBP t stat` = obp$statistic,
+  `OBP p value` = obp$p.value,
+  `OPS t stat` = ops$statistic,
+  `OPS p value` = ops$p.value,
+  `OPS+ t stat` = opsp$statistic,
+  `OPS+ p value` = opsp$p.value,
+)
+
+table = kable(table, caption = "T Statistics and P Values for all Variables of Interest")
+table
+
+```
+For each major stat tested there is significant evidence (p values: 1.077e-08, 0.001457, 0.0001017, 6.709e-08, 1.151e-07 respectively) that players perform worse their sophomore season when compared to their rookie year.
+
+
+> Discussion
+
+Graph Analysis
+
+*Two Sample Density plots*
+
+The overall trend across these graphs suggests that, on average, players experience a slight decrease in performance in these batting statistics in their Sophomore year compared to their Rookie year. This could be due to a variety of factors such as adjustments by opposing teams, the so-called "sophomore slump," or regression to the mean after an unusually successful Rookie year.
+
+
+
+*"Change" Data Frame plots*
+
+The graphs of stats from the "change" data frame show a clear and decisive deviation from the standard normal. Every distribution from the "change" data frame has a mean of less than zero, which provides evidence against there not being a change from the rookie to sophomore year. In short, these graphs appear to show that players tend to perform worse on average during their Sophomore season than their Rookie year.
+
+
+*T Test Analysis*
+
+Across all five categories we measured (SLG, HR, OBP, OPS, OPS+) the paired one sided T Test yielded p values the provided evidence against the null hypothesis that the population means are equal (P values 2.155e-08, 0.002914, 0.0002034, 1.342e-07, 2.303e-07 Respectively). In essence, the paired two sample T Tests provide ample evidence that there is a decline in performance during sophomore seasons compared to rookie year, consistent with the visualizations of the plots.
+
+
+
+*What it Means*
+
+Taking into account all of the methods we used, there is clear evidence to the thesis that Rookie of the Year award winners in MLB tend to perform worse their sophomore season when compared to their rookie year. This lends credence to the idea of the "Sophomore Slump", although a more statistically sound name for the phenomenon may be regression to the mean. What we mean by this is that players that are exceptional one year may perform closer to league average the following year, while players who struggle their rookie year may see improvements as they progress towards the league average. This idea could be tested in further work on this project in the future by accumulating data on a wide range of rookies rather than just Rookie of the Year award winners. Regardless of what you want to call it, there is clear evidence to the fact that exceptional rookie baseball players tend to regress during their sophomore season.
+
+*Future Analysis*
+
+A shortcoming of our project is that we only analyzed data from Rookie of the Year Award winners, which decreased the randomness of our sample. It is for this reason that the trend in decline in performance can only be generalized for players that excelled in their rookie season. In future analysis we could improve upon this project by altering the web scraping to gather a representative sample of all Major League Baseball rookies. This could help us understand the overarching trend for performance across the league, and confirm our suspicions that the situation can be modeled as regression to the mean.
