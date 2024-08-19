@@ -1,1 +1,2 @@
-# SophomoreSlump
+# Sophomore Slump
+This was a final project for my first data science stats class. The objective was to demostrate visualization skills and comfort with basic statistical packages in R. I Webscraped data from BaseballReference.com on Rookie of the Year winners in MLB since 1947. I then did a statistical analysis on whether the sophomore slump is a real phenomemon. You can read my findings in the R notebook.
